@@ -13,7 +13,7 @@ yew = { version = "0.21.0", features = ["csr"] }
 wasm-bindgen-futures = "0.4.50"
 reqwest = { version = "0.12.12", features = ["json"] }
 actix-cors = "0.7.0"
-acid4sigmas-new-models = { path = "../acid4sigmas-new-models" }
+acid4sigmas-new-models = { path = "../acid4sigmas-models" }
 chrono = { version = "0.4.39", features = ["serde"] }
 jsonwebtoken = "9.3.0"
 rand = "0.8.5"
