@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
             .allow_any_header();
 
         App::new()
-            .wrap(cors)
+            .wrap(cors.clone()) //cloned it to avoid potential issues
             .app_data(web::Data::new(pool.clone()))
             .configure(user_routes)
     })
