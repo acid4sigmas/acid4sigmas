@@ -1,3 +1,4 @@
+pub mod jwt;
 pub mod user;
 
 use sqlx::{Pool, Postgres};
