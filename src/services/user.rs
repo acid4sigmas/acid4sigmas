@@ -1,23 +1,16 @@
 use crate::{
     database::{user::UserDb, Database},
-    utils::{snowflake_id::generate_uid, timestamp::convert_timestamp_to_utc},
+    utils::{
+        jsonwebtoken::JsonWebTokenHandler, snowflake_id::generate_uid,
+        timestamp::convert_timestamp_to_utc,
+    },
 };
 
 use super::Service;
 use acid4sigmas_new_models::error::{Error, ExtendedResponse, StatusCode};
 use acid4sigmas_new_models::models::user::{CreateUser, CreateUserResponse, User};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{encode, EncodingKey, Header};
-use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
-
-const SECRET: &str = "very_SECRETT_keyy!";
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String, // The subject (usually the username or user ID)
-    exp: i64,    // Expiration time
-}
 
 #[derive(Debug)]
 pub struct CreateUserService {
@@ -44,7 +37,7 @@ impl Service<CreateUser, CreateUserResponse> for CreateUserService {
             ));
         };
 
-        let user_db = UserDb::new(pool).await;
+        let user_db = UserDb::new(pool.clone()).await;
 
         user_db
             .create_table()
@@ -65,17 +58,12 @@ impl Service<CreateUser, CreateUserResponse> for CreateUserService {
 
         let exp = (Utc::now() + Duration::hours(1)).timestamp();
 
-        let claims = Claims {
-            sub: self.input.username.clone(),
-            exp,
-        };
+        let token_handler = JsonWebTokenHandler::new(pool).await;
 
-        let token = encode(
-            &Header::new(jsonwebtoken::Algorithm::HS256),
-            &claims,
-            &EncodingKey::from_secret(SECRET.as_ref()),
-        )
-        .map_err(|e| Error::new(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()))?;
+        let token = token_handler
+            .create_jwt(uid, Some(exp))
+            .await
+            .map_err(|e| Error::new(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()))?;
 
         let response = ExtendedResponse::success(CreateUserResponse {
             user: User {
